@@ -28,4 +28,16 @@ class ShouldMatcherSpec extends FunSpec with ShouldMatchers {
       //s should fullyMatch regex ("""I(.|\n|\S)*higher""")
     }
   }
+
+  describe("status code") {
+    it ("test status site") {
+      val status = 42
+
+      status should be < (50)
+      status should not be > (50)
+      status should be <= (100)
+      status should === (42)
+      status should not equal (400)
+    }
+  }
 }
