@@ -14,14 +14,27 @@ object FutureServer {
 
   case class EventRequest(name: String)
   case class EventResponse(event: Event)
-
+  case class RouteResponse(route: Route)
 
 
   case class Event(location: String, time: Long)
+  case class Route(address: String)
 
   def callEventService(request: EventRequest): EventResponse = {
-    Thread.sleep(5000)
-    return EventResponse(Event("Vladimir",7777))
+    Thread.sleep(3000)
+    EventResponse(Event("Vladimir",7777))
+  }
+
+  def callRouteService(event: Event)(implicit ex: ExecutionContext): RouteResponse =  {
+    Thread.sleep(2000)
+    RouteResponse(Route("route: Saratov, nagory proezd 4"))
+  }
+
+  def getRouteByEvent(event: Event)(implicit ex: ExecutionContext): Future[Route] = Future {
+    //подготовка параметров
+    val routeRequestEvent = Event(event.location,event.time)
+    val routeResponse = callRouteService(routeRequestEvent)
+    routeResponse.route
   }
 
   def testFututre1()(implicit ex: ExecutionContext): Future[String] =  {
@@ -29,7 +42,7 @@ object FutureServer {
     val request = EventRequest("Saratov")
     //вызов в потоке Y
     val futureEvent: Future[Event] = Future {
-      val resp: EventResponse = callEventService(request)
+      val resp = callEventService(request)
       resp.event
     }
 
@@ -67,7 +80,21 @@ object FutureServer {
                 resp.event
               }
 
-              eventFuture.map(x => x)
+/*
+              val futureRoute: Future[Route] = eventFuture.map {
+                event =>
+                  //подготовка параметров
+                  val routeRequestEvent = Event(event.location,event.time)
+                  val routeResponse = callRouteService(routeRequestEvent)
+                  routeResponse.route
+              }
+*/
+
+              val futureRoute: Future[Route] = eventFuture.flatMap(event => getRouteByEvent(event))
+
+              futureRoute.map(x => x)
+
+
             }
             // complete(testFututre1)
           }
