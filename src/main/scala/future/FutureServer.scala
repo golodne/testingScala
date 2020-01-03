@@ -12,8 +12,12 @@ import scala.util.Success
 
 object FutureServer {
 
+
+  case class Weather(temperature: Int, precipitaition: Boolean)
+
   case class TicketInfo(ticketNr: String,
                         event: Option[Event] = None,
+                        weather: Option[Weather] = None,
                         route: Option[Route] = None)
 
 
@@ -34,6 +38,41 @@ object FutureServer {
     Thread.sleep(2000)
     RouteResponse(Route("route: Saratov, nagory proezd 4"))
   }
+
+  def callWeatherXService(ticketInfo: TicketInfo)(implicit ex: ExecutionContext): Future[Option[Weather]] = Future {
+    Thread.sleep(500)
+    Some(Weather(43,false))
+  }
+
+  def callWeatherYService(ticketInfo: TicketInfo)(implicit ex: ExecutionContext): Future[Option[Weather]] = Future {
+    Thread.sleep(1000)
+    Some(Weather(50,true))
+  }
+
+  //паралельный вызов с возратом 1-го результата (2 способа)
+  def getWeather(ticketInfo: TicketInfo)(implicit ex: ExecutionContext): Future[TicketInfo] = {
+
+    val futureSrv1: Future[Option[Weather]] = callWeatherXService(ticketInfo).recover { case _ => None }
+    val futureSrv2: Future[Option[Weather]] = callWeatherYService(ticketInfo).recover { case _ => None }
+
+    val futures: List[Future[Option[Weather]]] = List(futureSrv1,futureSrv2)
+
+    //1 вариант поиска future
+    //val firstResponse: Future[Option[Weather]] = Future.firstCompletedOf(futures)
+
+    //2 вариант
+    val firstResponse: Future[Option[Weather]] = Future.find(futures)(x => !x.isEmpty).map(_.flatten)
+
+    firstResponse.map {
+      weatherResp =>
+        ticketInfo.copy(weather = weatherResp)
+    }
+  }
+
+  //объединение двух параллельных вызовов
+
+
+
 
   def getEvent(ticketInfo: TicketInfo)(implicit ex: ExecutionContext): Future[TicketInfo] = Future {
    // throw new IllegalArgumentException("tststs")
@@ -70,19 +109,10 @@ object FutureServer {
           path("test") {
             complete {
 
-              val ticketInfo: TicketInfo = TicketInfo("5555")
+              val ticketInfo: TicketInfo = TicketInfo("55555")
 
-/*
-              val eventFuture: Future[Event] = Future {
-                val resp: EventResponse = callEventService(request)
-                println(s"asinc result ${resp.event.toString}")
-                resp.event
-              }
-              */
-
-              val eventFuture: Future[TicketInfo] = getEvent(ticketInfo)
-
-              eventFuture.flatMap {
+              val fweather: Future[TicketInfo] = getWeather(ticketInfo);
+              val futureRoute:Future[TicketInfo] = getEvent(ticketInfo).flatMap {
                 ticket =>
                   //println(s"finded ticket $ticket")
                   getRouteByEvent(ticket).recover {
@@ -92,22 +122,12 @@ object FutureServer {
                 case e: Exception => TicketInfo("error from getEvent 5555") //return
               }
 
-            //  ticketInfo
-              /*
-              eventFuture.flatMap{ x =>
-                getRouteByEvent(x)
-                TicketInfo("default Number 5555")
-              }.recover{
-                case ex: Exception => TicketInfo("default Number 5555")
-              }
-*/
-//              val futureRoute: Future[Route] = eventFuture.flatMap(event => getRouteByEvent(event))
-
-        //      futureRoute.map(x => x)
-
-
+              for {
+                w <- fweather
+                r <- futureRoute
+              } yield ticketInfo.copy(weather = w.weather,route = r.route)
             }
-            // complete(testFututre1)
+
           }
         )
       }
