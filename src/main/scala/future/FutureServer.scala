@@ -12,6 +12,11 @@ import scala.util.Success
 
 object FutureServer {
 
+  case class TicketInfo(ticketNr: String,
+                        event: Option[Event] = None,
+                        route: Option[Route] = None)
+
+
   case class EventRequest(name: String)
   case class EventResponse(event: Event)
   case class RouteResponse(route: Route)
@@ -22,32 +27,25 @@ object FutureServer {
 
   def callEventService(request: EventRequest): EventResponse = {
     Thread.sleep(3000)
-    EventResponse(Event("Vladimir",7777))
+    EventResponse(Event("Vladimir from event",7777))
   }
 
-  def callRouteService(event: Event)(implicit ex: ExecutionContext): RouteResponse =  {
+  def callRouteService(event: Option[Event])(implicit ex: ExecutionContext): RouteResponse =  {
     Thread.sleep(2000)
     RouteResponse(Route("route: Saratov, nagory proezd 4"))
   }
 
-  def getRouteByEvent(event: Event)(implicit ex: ExecutionContext): Future[Route] = Future {
-    //подготовка параметров
-    val routeRequestEvent = Event(event.location,event.time)
-    val routeResponse = callRouteService(routeRequestEvent)
-    routeResponse.route
+  def getEvent(ticketInfo: TicketInfo)(implicit ex: ExecutionContext): Future[TicketInfo] = Future {
+   // throw new IllegalArgumentException("tststs")
+    val eventRequest: EventRequest = EventRequest(ticketInfo.ticketNr)
+    val responseEvent = callEventService(eventRequest)
+    ticketInfo.copy(event = Some(responseEvent.event))
   }
 
-  def testFututre1()(implicit ex: ExecutionContext): Future[String] =  {
-
-    val request = EventRequest("Saratov")
-    //вызов в потоке Y
-    val futureEvent: Future[Event] = Future {
-      val resp = callEventService(request)
-      resp.event
-    }
-
-    futureEvent.map(x => x.location)
-
+  def getRouteByEvent(ticketInfo: TicketInfo)(implicit ex: ExecutionContext): Future[TicketInfo] = Future {
+    // throw new IllegalArgumentException("uuuups")
+    val responseRoute = callRouteService(ticketInfo.event)
+    ticketInfo.copy(route = Some(responseRoute.route))
   }
 
   def main(args: Array[String]) {
@@ -72,27 +70,40 @@ object FutureServer {
           path("test") {
             complete {
 
-              val request = EventRequest("Saratov")
+              val ticketInfo: TicketInfo = TicketInfo("5555")
 
+/*
               val eventFuture: Future[Event] = Future {
                 val resp: EventResponse = callEventService(request)
                 println(s"asinc result ${resp.event.toString}")
                 resp.event
               }
+              */
 
-/*
-              val futureRoute: Future[Route] = eventFuture.map {
-                event =>
-                  //подготовка параметров
-                  val routeRequestEvent = Event(event.location,event.time)
-                  val routeResponse = callRouteService(routeRequestEvent)
-                  routeResponse.route
+              val eventFuture: Future[TicketInfo] = getEvent(ticketInfo)
+
+              eventFuture.flatMap {
+                ticket =>
+                  //println(s"finded ticket $ticket")
+                  getRouteByEvent(ticket).recover {
+                    case e: Exception => TicketInfo(ticket.ticketNr,ticketInfo.event)
+                  }
+              }.recover{
+                case e: Exception => TicketInfo("error from getEvent 5555") //return
+              }
+
+            //  ticketInfo
+              /*
+              eventFuture.flatMap{ x =>
+                getRouteByEvent(x)
+                TicketInfo("default Number 5555")
+              }.recover{
+                case ex: Exception => TicketInfo("default Number 5555")
               }
 */
+//              val futureRoute: Future[Route] = eventFuture.flatMap(event => getRouteByEvent(event))
 
-              val futureRoute: Future[Route] = eventFuture.flatMap(event => getRouteByEvent(event))
-
-              futureRoute.map(x => x)
+        //      futureRoute.map(x => x)
 
 
             }
