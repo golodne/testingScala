@@ -2,7 +2,7 @@ package future
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.{ContentTypes, HttpEntity}
+import akka.http.scaladsl.model.{ContentTypes, DateTime, HttpEntity}
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
 
@@ -12,13 +12,23 @@ import scala.util.Success
 
 object FutureServer {
 
+  case class Location (lat: Double, long: Double)
+  case class RouteByCar (route: String, origin: Location)
+  case class PublicTransportAdvice ( route2: String)
+
+
+  case class TravelAdvice(
+                         routeByCar: Option[RouteByCar] = None,
+                         publicTransportAdvice: Option[PublicTransportAdvice] = None
+                         )
 
   case class Weather(temperature: Int, precipitaition: Boolean)
 
   case class TicketInfo(ticketNr: String,
                         event: Option[Event] = None,
                         weather: Option[Weather] = None,
-                        route: Option[Route] = None)
+                        route: Option[Route] = None,
+                        travelAdvice: Option[TravelAdvice] = None)
 
 
   case class EventRequest(name: String)
@@ -69,10 +79,34 @@ object FutureServer {
     }
   }
 
+  def callTrafic(info: TicketInfo)(implicit ex: ExecutionContext): Future[Option[RouteByCar]] =  {
+    Future(Option(RouteByCar("х северной широты", Location(5.44,6.44))))
+  }
+
+  def callPublicTransport(info: TicketInfo)(implicit ex: ExecutionContext): Future[Option[PublicTransportAdvice]] =  {
+    Future(Option(PublicTransportAdvice("route2 public transport")))
+  }
+
   //объединение двух параллельных вызовов
+  def getTravelAdvice(info: TicketInfo, event: Option[Event])(implicit ex: ExecutionContext): Future[TicketInfo] = {
 
+    val futureL: Future[Option[RouteByCar]] = callTrafic(info).recover { case ex: Exception => None}
+    val futureR: Future[Option[PublicTransportAdvice]] = callPublicTransport(info).recover { case ex: Exception => None}
+/*
+  //пример 1
+    futureL.zip(futureR).map {
+      case (routeByCar,publicTransportAdvice) =>
+        val travelAdvice = TravelAdvice(routeByCar,publicTransportAdvice)
+        info.copy(travelAdvice = Some(travelAdvice))
+    }
+    */
 
-
+    //пример2
+    for (
+      (route,advice) <- futureL.zip(futureR);
+       travelAdvice = TravelAdvice(route,advice)
+    ) yield info.copy(travelAdvice = Some(travelAdvice))
+  }
 
   def getEvent(ticketInfo: TicketInfo)(implicit ex: ExecutionContext): Future[TicketInfo] = Future {
    // throw new IllegalArgumentException("tststs")
@@ -86,6 +120,9 @@ object FutureServer {
     val responseRoute = callRouteService(ticketInfo.event)
     ticketInfo.copy(route = Some(responseRoute.route))
   }
+
+  //
+  //def callSimilarArtistsService(event: Event): Future[Seq[Event]]
 
   def main(args: Array[String]) {
 
@@ -112,6 +149,8 @@ object FutureServer {
               val ticketInfo: TicketInfo = TicketInfo("55555")
 
               val fweather: Future[TicketInfo] = getWeather(ticketInfo);
+
+
               val futureRoute:Future[TicketInfo] = getEvent(ticketInfo).flatMap {
                 ticket =>
                   //println(s"finded ticket $ticket")
@@ -125,7 +164,8 @@ object FutureServer {
               for {
                 w <- fweather
                 r <- futureRoute
-              } yield ticketInfo.copy(weather = w.weather,route = r.route)
+                t <- getTravelAdvice(ticketInfo,r.event)
+              } yield ticketInfo.copy(weather = w.weather,route = r.route,travelAdvice = t.travelAdvice)
             }
 
           }
