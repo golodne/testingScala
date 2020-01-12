@@ -1,3 +1,5 @@
+package Actor
+
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import akka.testkit.{TestKit, TestProbe}
 import org.scalatest.{BeforeAndAfterAll, Matchers, Suite, WordSpecLike}

@@ -1,13 +1,13 @@
+package Actor
 
-import java.sql.Date
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import akka.testkit.{TestKit, TestProbe}
 import org.scalatest.{Matchers, WordSpecLike}
 
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration.FiniteDuration
 
 
 case class PhotoMessage(id: String,
@@ -106,7 +106,7 @@ class ParallelActorsTest extends TestKit(ActorSystem("MySpec"))
         val msg = PhotoMessage("id1","152ka")
         recipientRef ! msg
 
-        //found PhotoMessage(id1,152ka,Some(10.09.2018T03:02:01),Some(50))
+        //found Actor.PhotoMessage(id1,152ka,Some(10.09.2018T03:02:01),Some(50))
         val combimeResult = PhotoMessage(
           "id1",
           msg.photo,

@@ -1,3 +1,5 @@
+package Actor
+
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import akka.testkit.{TestKit, TestProbe}
 import org.scalatest.{Matchers, WordSpecLike}
@@ -9,7 +11,7 @@ class RouteTest extends TestKit(ActorSystem("MySpec"))
   with Matchers
   with StopSystemAfterAll {
 
-    "test RouteTest " must {
+    "test Actor.RouteTest " must {
       "sending to actors route by option " in {
 
         val probe = TestProbe()
@@ -101,7 +103,7 @@ class StartOrderRouter(endStep: ActorRef) extends Actor with RouteSlip {
   }
 
 
-  //Order(potions: Seq[CarOption.Value])
+  //Actor.Order(potions: Seq[Actor.CarOption.Value])
   private def createRouteSlip(option: Seq[CarOption.Value]): Seq[ActorRef] = {
 
     val routeSlip = new ListBuffer[ActorRef]
