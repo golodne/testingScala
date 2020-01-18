@@ -95,5 +95,3 @@ val C = A.orElse(B) //Option[String] = Some(resource1)
 
 
 
-
-
