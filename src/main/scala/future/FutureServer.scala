@@ -80,11 +80,11 @@ object FutureServer {
   }
 
   def callTrafic(info: TicketInfo)(implicit ex: ExecutionContext): Future[Option[RouteByCar]] =  {
-    Future(Option(RouteByCar("х северной широты", Location(5.44,6.44))))
+    Future(Some(RouteByCar("х северной широты", Location(5.44,6.44))))
   }
 
   def callPublicTransport(info: TicketInfo)(implicit ex: ExecutionContext): Future[Option[PublicTransportAdvice]] =  {
-    Future(Option(PublicTransportAdvice("route2 public transport")))
+    Future(Some(PublicTransportAdvice("route2 public transport")))
   }
 
   //объединение двух параллельных вызовов

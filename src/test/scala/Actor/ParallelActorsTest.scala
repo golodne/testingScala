@@ -49,7 +49,7 @@ class ParallelActorsTest extends TestKit(ActorSystem("MySpec"))
         val aggrActor = system.actorOf(Props(new Aggrgator(1 seconds, resultProbe.ref)))
 
         //первое сообщение это время
-        val msg11 = PhotoMessage("id1","152ka",Some("10 утра"),Option.empty)
+        val msg11 = PhotoMessage("id1","152ka",Some("10 утра"),None)
         //второе сообщение это скорость
         val msg12 = PhotoMessage("id1","152ka",None,Some(100))
 
@@ -76,7 +76,7 @@ class ParallelActorsTest extends TestKit(ActorSystem("MySpec"))
         val aggrActor = system.actorOf(Props(new Aggrgator(1 seconds, resultProbe.ref)))
 
         //первое сообщение это время
-        val msg11 = PhotoMessage("id1","152ka",Some("10 утра"),Option.empty)
+        val msg11 = PhotoMessage("id1","152ka",Some("10 утра"),None)
 
         aggrActor ! msg11
         Thread.sleep(2000)
